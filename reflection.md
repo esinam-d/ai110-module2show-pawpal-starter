@@ -1,16 +1,30 @@
 # PawPal+ Project Reflection
 
 ## 1. System Design
+This program allows nthe user to add a pet, schedule walks with ntheir pet and schedule a feeding time.
 
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+ans.) Task: This represents individual pet care activities. Responsible for tracking details, completion, and scheduling info.
+Pet: Represents a pet. Responsible for storing personal infor and tasks, adding/ and removing tasks, and reporting the tasks due today.
+Owner: Represents the owner. Responisble for managing multiple pts and retrieving all tasks across pets.
+Scheduler: This is responsible for sorting tasks, detecting conflicts, handling recurring tasks, and generating daily schedules
+
 - What classes did you include, and what responsibilities did you assign to each?
 
 **b. Design changes**
 
 - Did your design change during implementation?
+
+Ans.) Yes, the designed was refined after reviewing AI feedback.
+
 - If yes, describe at least one change and why you made it.
+
+Ans.) Based on the feedback, I clarified that:
+- Pet methods such as add_task() and remove_task() should directly modify the pet's internal task list.
+- Owner.get_all_tasks() should be a combination of tasks from all owned pets instead of storing duplicate task data.
+- Scheduler methods should explicitly define how tasks are added and processed, ensuring clear data flow between classes.
 
 ---
 
