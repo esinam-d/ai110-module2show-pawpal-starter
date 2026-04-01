@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 """ TASK CLASS """
 @dataclass
@@ -9,11 +9,31 @@ class Task:
     title: str
     scheduled_time: datetime
     priority: int
-    completed: bool = False #default value
+    completed: bool = False  # default value
+    frequency: str | None = None  # 'daily', 'weekly', or None
 
-    def mark_complete(self) -> None:
-        """Mark task as completed."""
+    def mark_complete(self) -> "Task | None":
+        """Mark task as completed and create next recurring task if applicable."""
         self.completed = True
+        return self.create_next_occurrence()
+
+    def create_next_occurrence(self) -> "Task | None":
+        """Return a new task instance for the next occurrence if recurring."""
+        if self.frequency == "daily":
+            next_time = self.scheduled_time + timedelta(days=1)
+        elif self.frequency == "weekly":
+            next_time = self.scheduled_time + timedelta(weeks=1)
+        else:
+            return None
+
+        return Task(
+            task_id=self.task_id + 1000,
+            title=self.title,
+            scheduled_time=next_time,
+            priority=self.priority,
+            completed=False,
+            frequency=self.frequency,
+        )
 
     def reschedule(self, new_time: datetime) -> None:
         """Set a new scheduled time for the task."""
@@ -71,15 +91,23 @@ class Owner:
 
 """SCHEDULER CLASS"""
 class Scheduler:
+    def sort_tasks_by_time(self, tasks: list[Task]) -> list[Task]:
+        """Return tasks sorted by scheduled time."""
+        return sorted(tasks, key=lambda t: t.scheduled_time)
+
     def add_task(self, pet: Pet, task: Task) -> None:
-        """Delegate task addition to a pet."""
-        pet.add_task(task)
+        """Delegate task addition to a pet with conflict check."""
+        if self.has_conflict(pet, task):
+            print(f"Warning: conflict detected for {pet.name} at {task.scheduled_time}. Task not added.")
+            return
+        pet.tasks.append(task)
 
     def sort_tasks_by_priority(self, tasks: list[Task]) -> list[Task]:
         """Return tasks sorted by descending priority."""
         return sorted(tasks, key=lambda t: t.priority, reverse=True)
 
     def detect_conflicts(self, tasks: list[Task]) -> list[tuple[Task, Task]]:
+        """Find tasks that share the same scheduled time."""
         """Find tasks that share the same scheduled time."""
         conflicts: list[tuple[Task, Task]] = []
         sorted_tasks = sorted(tasks, key=lambda t: t.scheduled_time)
@@ -93,4 +121,31 @@ class Scheduler:
         """Assemble today's tasks for an owner and sort them."""
         daily = [task for task in owner.get_all_tasks() if task.scheduled_time.date() == date.date()]
         return self.sort_tasks_by_priority(daily)
+    
+    def filter_by_pet(self, owner, pet_name):
+        """
+        Return all tasks belonging to a specific pet.
+          """
+        for pet in owner.pets:
+            if pet.name == pet_name:
+                return pet.tasks
+        return []
+    
+    def filter_by_status(self, tasks, completed=False):
+        """
+          Return tasks filtered by completion status.
+            """
+        return [task for task in tasks if task.completed == completed]
+    
+    def has_conflict(self, pet, new_task):
+        """Check if a new task conflicts with existing tasks for a pet."""
+        for task in pet.tasks:
+            if task.scheduled_time == new_task.scheduled_time:
+                return True
+        return False
 
+    def detect_conflicts_for_owner(self, owner: Owner) -> list[tuple[Task, Task]]:
+        """Find conflicting tasks across all pets for an owner."""
+        all_tasks = owner.get_all_tasks()
+        return self.detect_conflicts(all_tasks)
+    
